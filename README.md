@@ -12,7 +12,7 @@ El programa muestra las estadísticas de tres de los mejores jugadores de la his
 * <b>--name=NAME:</b> Este flag que admite un valor, que puede ser: kobe, lebron o jordan, nos mostrará las estadísticas relacionadas con el jugador indicado
 * <b>--playoffs:</b> Este flag nos mostrará las estadísticas de playoffs del jugador seleccionado
 * <b>-c:</b> Este flag nos mostrará las estadísticas de los años en que los jugadores ganaron el campeonato de la NBA
-* <b>-m</b> Este flag nos mostrará las estadísticas de los años donde los jugadores ganaron el MVP (Most Valuable Player)
+* <b>-m:</b> Este flag nos mostrará las estadísticas de los años donde los jugadores ganaron el MVP (Most Valuable Player)
 <b>Nota:</b> Los flags -c y -m no pueden ponerse a la vez
 * <b>-graph:</b> Este flag nos muestra un gráfico con las estadísticas de los tres jugadores
 * <b>--mailto=EMAIL:</b> Envía el gráfico generado con el flag --graph al email indicado (solo permite uno)
