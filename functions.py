@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 import os
 import sys
+import getpass
 
 def help():
     return """
@@ -292,6 +293,7 @@ def graphs(stats, playoffs, email, emailto):
         send_email(emailto)
 
 def send_email(emailto):
+    password = input("Enter email password: ")
     strFrom = "eduman13pruebas@gmail.com"
     strTo = emailto
 
@@ -334,12 +336,6 @@ def send_email(emailto):
     server = smtplib.SMTP(email_server_host, port)
     server.ehlo()
     server.starttls()
-    server.login(strFrom, "****")
+    server.login(strFrom, password)
     server.sendmail(strFrom, strTo, msgRoot.as_string())
     server.close()
-
-
-
-
-
-#https://phhstrailblazer.org/wp-content/uploads/2016/01/Kobe-Bryant-480x480.png
