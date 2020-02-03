@@ -334,7 +334,7 @@ def send_email(emailto):
     server = smtplib.SMTP(email_server_host, port)
     server.ehlo()
     server.starttls()
-    server.login(strFrom, "ironhack123")
+    server.login(strFrom, "****")
     server.sendmail(strFrom, strTo, msgRoot.as_string())
     server.close()
 
