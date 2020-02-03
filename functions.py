@@ -7,7 +7,28 @@ from IPython.display import display, HTML
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 import os
+import sys
+
+def help():
+    return """
+DESCRIPCCION
+Muestra datos estadisticos de los jugadores de la NBA
+Kobe Bryant, LeBron James y Michael Jordan
+        
+    --playoffs:  Muestra los datos de playoffs
+    --name=NAME:  Le pasamos el nombre del jugador que queremos
+        ver las estadisticas
+    --totals: Muetra datos totales
+    -c: Muestra las estadisticas de las temporadas que el jugador gano el
+        campeonato NBA
+    -m: Muestra las estadisticas de las temporadas que el jugador fue
+            Most Valuable Player  
+    --graph: Muestra las estadisticas totales de la temporada 
+        regular de todos los jugadores en forma de grafico
+    --mailto=EMAIL: envia el grafico generado al email indicado
+"""
 
 def dataFrame(namePlayers):
     stats = pd.read_csv("allgames_stats.csv")
@@ -256,7 +277,7 @@ def simpleStats(stats, name, playoffs, mvp, champion, totals):
                     rebound = playerStats.TRB.mean()
                     return points, assists, rebound
 
-def graphs(stats, playoffs, email):
+def graphs(stats, playoffs, email, emailto):
     if playoffs:
         tabla = stats[stats["RSorPO"] == "Playoffs"].groupby('Player').agg({'PTS': 'sum', 'AST': 'sum', "TRB": "sum"})
         plot = tabla.plot(kind="bar", title="Total Stats")
@@ -268,33 +289,57 @@ def graphs(stats, playoffs, email):
         fig = plot.get_figure()
         fig.savefig("totalStats.png")
     if email:
-        send_email()
+        send_email(emailto)
 
-def send_email():
-    me = "eduman13pruebas@gmail.com"
-    recipient = 'e.gespeso@gmail.com'
-    subject = "Total Stats"
+def send_email(emailto):
+    strFrom = "eduman13pruebas@gmail.com"
+    strTo = emailto
+
+    msgRoot = MIMEMultipart("related")
+    msgRoot["Subject"] = "Total Stats"
+    msgRoot["From"] = strFrom
+    msgRoot["To"] = strTo
+    msgRoot.preamble = "This is a multi-part message in MIME format."
+    msgAlternative = MIMEMultipart("alternative")
+    msgRoot.attach(msgAlternative)
+
+    msgText = MIMEText("This is the alternative plain text message.")
+    msgAlternative.attach(msgText)
+
+    template = """
+        <b>Puntos, asistencias y rebotes de Kobe, LeBron y Jordan </b><br>
+        <img src=cid:image1>
+        <br>
+        <br>
+        </br>
+        Siempre te recordaremos. <b>MAMBA OUT!!!</b>
+        <br>
+        </br>
+        <br>
+        <img src=https://phhstrailblazer.org/wp-content/uploads/2016/01/Kobe-Bryant-480x480.png>
+        </br>
+    """
+    msgText = MIMEText(template, "html")
+    msgAlternative.attach(msgText)
+
+    fp = open("totalStats.png", "rb")
+    msgImage = MIMEImage(fp.read())
+    fp.close()
+
+    msgImage.add_header("Content-ID", "<image1>")
+    msgRoot.attach(msgImage)
+
     email_server_host = "smtp.gmail.com"
     port = 587
-    email_username = me
-    email_password = "ironhack123"
-    template ="""
-        <h1> Homenaje a Kobe Bryant <h1>
-        <img src="totalStats.png" alt="Figura">
-        <img src="https://phhstrailblazer.org/wp-content/uploads/2016/01/Kobe-Bryant-480x480.png" alt="Kobe">
-    """
-    msg = MIMEMultipart('alternative')
-    msg["From"] = me
-    msg["To"] = recipient
-    msg["Subject"] = subject
-
-    msg.attach(MIMEText(template, "html"))
-
     server = smtplib.SMTP(email_server_host, port)
     server.ehlo()
     server.starttls()
-    server.login(email_username, email_password)
-    server.sendmail(me, recipient, msg.as_string())
+    server.login(strFrom, "ironhack123")
+    server.sendmail(strFrom, strTo, msgRoot.as_string())
     server.close()
+
+
+
+
 
 #https://phhstrailblazer.org/wp-content/uploads/2016/01/Kobe-Bryant-480x480.png
