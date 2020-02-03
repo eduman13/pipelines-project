@@ -1,18 +1,25 @@
 import requests as r
 import re
 from bs4 import BeautifulSoup
-import re
 import pandas as pd
+import matplotlib.pyplot as plt
+from IPython.display import display, HTML
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import os
 
-def dataFrame():
+def dataFrame(namePlayers):
     stats = pd.read_csv("allgames_stats.csv")
     stats.X = stats.X.apply(lambda x: "at" if x == "@" else "vs")
     del stats["GS"]
     del stats["GmSc"]
-    lebron2018 = statsSeason("lebron", "2018", "LAL")
-    lebron2019 = statsSeason("lebron", "2019", "LAL")
-    stats.append(lebron2018)
-    stats.append(lebron2019)
+    for player in namePlayers:
+        if player == "Lebron James":
+            lebron2018 = statsSeason("lebron", "2018", "LAL")
+            lebron2019 = statsSeason("lebron", "2019", "LAL")
+            stats.append(lebron2018)
+            stats.append(lebron2019)
     stats["Season"] = stats.Date.apply(season)
     players = stats.Player.drop_duplicates(keep="first").tolist()
     premios = [mvp_champion(i.replace(" ", "_")) for i in players]
@@ -159,42 +166,135 @@ def year_award(premios, stats):
         listPlayers.append(player)
     return listPlayers
 
-def points(name, stats, playoffs, totals):
-
-    player = stats.loc[stats["Player"] == name]
-    if playoffs:
+def simpleStats(stats, name, playoffs, mvp, champion, totals):
+    namePlayer = {
+        "kobe": "Kobe Bryant",
+        "jordan": "Michael Jordan",
+        "lebron": "Lebron James"
+    }
+    player = stats[stats.Player == namePlayer[name[0]]]
+    if champion:
         if totals:
-            return player.loc[player["RSorPO"] == "Playoffs", "PTS"].sum()
+            if playoffs:
+                playerStats = player[(player["RSorPO"] == "Playoffs") & (player["NBA_Champion"] == "Y")]
+                points = playerStats.PTS.sum()
+                assists = playerStats.AST.sum()
+                rebound = playerStats.TRB.sum()
+                return points, assists, rebound
+            else:
+                playerStats = player[(player["RSorPO"] == "Regular Season") & (player["NBA_Champion"] == "Y")]
+                points = playerStats.PTS.sum()
+                assists = playerStats.AST.sum()
+                rebound = playerStats.TRB.sum()
+                return points, assists, rebound
         else:
-            return player.loc[player["RSorPO"] == "Playoffs", "PTS"].mean()
+            if playoffs:
+                playerStats = player[(player["RSorPO"] == "Playoffs") & (player["NBA_Champion"] == "Y")]
+                points = playerStats.PTS.mean()
+                assists = playerStats.AST.mean()
+                rebound = playerStats.TRB.mean()
+                return points, assists, rebound
+            else:
+                playerStats = player[(player["RSorPO"] == "Regular Season") & (player["NBA_Champion"] == "Y")]
+                points = playerStats.PTS.mean()
+                assists = playerStats.AST.mean()
+                rebound = playerStats.TRB.mean()
+                return points, assists, rebound
     else:
         if totals:
-            return player.loc[player["RSorPO"] == "Regular Season", "PTS"].sum()
+            if mvp:
+                if playoffs:
+                    playerStats = player[(player["RSorPO"] == "Playoffs") & (player["MVP"] == "Y")]
+                    points = playerStats.PTS.sum()
+                    assists = playerStats.AST.sum()
+                    rebound = playerStats.TRB.sum()
+                    return points, assists, rebound
+                else:
+                    playerStats = player[(player["RSorPO"] == "Regular Season") & (player["MVP"] == "Y")]
+                    points = playerStats.PTS.sum()
+                    assists = playerStats.AST.sum()
+                    rebound = playerStats.TRB.sum()
+                    return points, assists, rebound
+            else:
+                if playoffs:
+                    playerStats = player[(player["RSorPO"] == "Playoffs")]
+                    points = playerStats.PTS.sum()
+                    assists = playerStats.AST.sum()
+                    rebound = playerStats.TRB.sum()
+                    return points, assists, rebound
+                else:
+                    playerStats = player[(player["RSorPO"] == "Regular Season")]
+                    points = playerStats.PTS.sum()
+                    assists = playerStats.AST.sum()
+                    rebound = playerStats.TRB.sum()
+                    return points, assists, rebound
         else:
-            return player.loc[player["RSorPO"] == "Regular Season", "PTS"].mean()
+            if mvp:
+                if playoffs:
+                    playerStats = player[(player["RSorPO"] == "Playoffs") & (player["MVP"] == "Y")]
+                    points = playerStats.PTS.mean()
+                    assists = playerStats.AST.mean()
+                    rebound = playerStats.TRB.mean()
+                    return points, assists, rebound
+                else:
+                    playerStats = player[(player["RSorPO"] == "Regular Season") & (player["MVP"] == "Y")]
+                    points = playerStats.PTS.mean()
+                    assists = playerStats.AST.mean()
+                    rebound = playerStats.TRB.mean()
+                    return points, assists, rebound
+            else:
+                if playoffs:
+                    playerStats = player[(player["RSorPO"] == "Playoffs")]
+                    points = playerStats.PTS.mean()
+                    assists = playerStats.AST.mean()
+                    rebound = playerStats.TRB.mean()
+                    return points, assists, rebound
+                else:
+                    playerStats = player[(player["RSorPO"] == "Regular Season")]
+                    points = playerStats.PTS.mean()
+                    assists = playerStats.AST.mean()
+                    rebound = playerStats.TRB.mean()
+                    return points, assists, rebound
 
-def assists(name, stats, playoffs, totals):
-    player = stats.loc[stats["Player"] == name]
+def graphs(stats, playoffs, email):
     if playoffs:
-        if totals:
-            return player.loc[player["RSorPO"] == "Playoffs", "AST  "].sum()
-        else:
-            return player.loc[player["RSorPO"] == "Playoffs", "AST"].mean()
+        tabla = stats[stats["RSorPO"] == "Playoffs"].groupby('Player').agg({'PTS': 'sum', 'AST': 'sum', "TRB": "sum"})
+        plot = tabla.plot(kind="bar", title="Total Stats")
+        fig = plot.get_figure()
+        fig.savefig("totalStats.png")
     else:
-        if totals:
-            return player.loc[player["RSorPO"] == "Regular Season", "AST"].sum()
-        else:
-            return player.loc[player["RSorPO"] == "Regular Season", "AST"].mean()
+        tabla = stats[stats["RSorPO"] == "Regular Season"].groupby('Player').agg({'PTS': 'sum', 'AST': 'sum', "TRB": "sum"})
+        plot = tabla.plot(kind="bar", title="Total Stats")
+        fig = plot.get_figure()
+        fig.savefig("totalStats.png")
+    if email:
+        send_email()
 
-def rebounds(name, stats, playoffs, totals):
-    player = stats.loc[stats["Player"] == name]
-    if playoffs:
-        if totals:
-            return player.loc[player["RSorPO"] == "Playoffs", "TRB  "].sum()
-        else:
-            return player.loc[player["RSorPO"] == "Playoffs", "TRB"].mean()
-    else:
-        if totals:
-            return player.loc[player["RSorPO"] == "Regular Season", "TRB"].sum()
-        else:
-            return player.loc[player["RSorPO"] == "Regular Season", "TRB"].mean()
+def send_email():
+    me = "eduman13pruebas@gmail.com"
+    recipient = 'e.gespeso@gmail.com'
+    subject = "Total Stats"
+    email_server_host = "smtp.gmail.com"
+    port = 587
+    email_username = me
+    email_password = "ironhack123"
+    template ="""
+        <h1> Homenaje a Kobe Bryant <h1>
+        <img src="totalStats.png" alt="Figura">
+        <img src="https://phhstrailblazer.org/wp-content/uploads/2016/01/Kobe-Bryant-480x480.png" alt="Kobe">
+    """
+    msg = MIMEMultipart('alternative')
+    msg["From"] = me
+    msg["To"] = recipient
+    msg["Subject"] = subject
+
+    msg.attach(MIMEText(template, "html"))
+
+    server = smtplib.SMTP(email_server_host, port)
+    server.ehlo()
+    server.starttls()
+    server.login(email_username, email_password)
+    server.sendmail(me, recipient, msg.as_string())
+    server.close()
+
+#https://phhstrailblazer.org/wp-content/uploads/2016/01/Kobe-Bryant-480x480.png
